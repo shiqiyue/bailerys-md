@@ -1,6 +1,6 @@
 {
-  "name": "shiqiyuebaileysmd",
-  "version": "4.0.3",
+  "name": "shiqiyue-baileysmd",
+  "version": "4.0.4",
   "description": "WhatsApp API",
   "homepage": "https://github.com/adiwajshing/Baileys",
   "main": "lib/index.js",
