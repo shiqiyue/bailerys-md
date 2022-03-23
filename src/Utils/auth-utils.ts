@@ -176,3 +176,65 @@ export const useSingleFileAuthState = (filename: string, logger?: Logger): { sta
 		saveState
 	}
 }
+
+export const useAuthState = (authBuffer: Buffer, logger?: Logger): { state: AuthenticationState, saveState: () => void } => {
+	// require fs here so that in case "fs" is not available -- the app does not crash
+	let creds: AuthenticationCreds
+	let keys: any = { }
+
+	// save the authentication state to a file
+	const saveState = () => {
+		logger && logger.trace('saving auth state')
+		authBuffer.write(JSON.stringify({ creds, keys }, BufferJSON.replacer, 2))
+
+	}
+
+	const authBufferStr = authBuffer.toString('utf-8')
+	console.log('authBufferStr', authBufferStr.length)
+	if(authBufferStr.trim().length > 0) {
+		const result = JSON.parse(
+			authBufferStr,
+			BufferJSON.reviver
+		)
+		creds = result.creds
+		keys = result.keys
+	} else {
+		creds = initAuthCreds()
+		keys = { }
+	}
+
+	return {
+		state: {
+			creds,
+			keys: {
+				get: (type, ids) => {
+					const key = KEY_MAP[type]
+					return ids.reduce(
+						(dict, id) => {
+							let value = keys[key]?.[id]
+							if(value) {
+								if(type === 'app-state-sync-key') {
+									value = proto.AppStateSyncKeyData.fromObject(value)
+								}
+
+								dict[id] = value
+							}
+
+							return dict
+						}, { }
+					)
+				},
+				set: (data) => {
+					for(const _key in data) {
+						const key = KEY_MAP[_key as keyof SignalDataTypeMap]
+						keys[key] = keys[key] || { }
+						Object.assign(keys[key], data[_key])
+					}
+
+					saveState()
+				}
+			}
+		},
+		saveState
+	}
+}
