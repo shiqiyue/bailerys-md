@@ -1,6 +1,8 @@
 import { Boom } from '@hapi/boom'
 import P from 'pino'
-import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore, useSingleFileAuthState } from '../src'
+import { SocksProxyAgent } from 'socks-proxy-agent'
+import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore, useAuthState } from '../src'
+
 
 // the store maintains the data of the WA connection in memory
 // can be written out to a file & read from it
@@ -11,18 +13,21 @@ setInterval(() => {
 	store.writeToFile('./baileys_store_multi.json')
 }, 10_000)
 
-const { state, saveState } = useSingleFileAuthState('./auth_info_multi.json')
+var authBuffer = new Buffer('', 'utf-8')
+const { state, saveState } = useAuthState(authBuffer)
 
 // start a connection
 const startSock = async() => {
 	// fetch latest version of WA Web
 	const { version, isLatest } = await fetchLatestBaileysVersion()
 	console.log(`using WA v${version.join('.')}, isLatest: ${isLatest}`)
-
+	const agent = new SocksProxyAgent('socks://localhost:10808')
 	const sock = makeWASocket({
 		version,
 		logger: P({ level: 'trace' }),
 		printQRInTerminal: true,
+		agent: agent,
+		fetchAgent:agent,
 		auth: state,
 		// implement to handle retries
 		getMessage: async key => {
@@ -45,21 +50,21 @@ const startSock = async() => {
 
 		await sock.sendMessage(jid, msg)
 	}
-    
+
 	sock.ev.on('chats.set', item => console.log(`recv ${item.chats.length} chats (is latest: ${item.isLatest})`))
 	sock.ev.on('messages.set', item => console.log(`recv ${item.messages.length} messages (is latest: ${item.isLatest})`))
 	sock.ev.on('contacts.set', item => console.log(`recv ${item.contacts.length} contacts`))
 
 	sock.ev.on('messages.upsert', async m => {
 		console.log(JSON.stringify(m, undefined, 2))
-        
+
 		const msg = m.messages[0]
 		if(!msg.key.fromMe && m.type === 'notify') {
 			console.log('replying to', m.messages[0].key.remoteJid)
 			await sock!.sendReadReceipt(msg.key.remoteJid, msg.key.participant, [msg.key.id])
 			await sendMessageWTyping({ text: 'Hello there!' }, msg.key.remoteJid)
 		}
-        
+
 	})
 
 	sock.ev.on('messages.update', m => console.log(m))
@@ -78,7 +83,7 @@ const startSock = async() => {
 				console.log('Connection closed. You are logged out.')
 			}
 		}
-        
+
 		console.log('connection update', update)
 	})
 	// listen for when the auth credentials is updated
