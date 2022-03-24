@@ -1,12 +1,15 @@
 import { Boom } from '@hapi/boom'
+import EventEmitter from 'events'
 import P from 'pino'
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore, useAuthState } from '../src'
-
+const logger = P({
+	prettyPrint: { levelFirst: true, ignore: 'hostname', translateTime: true },
+})
 
 // the store maintains the data of the WA connection in memory
 // can be written out to a file & read from it
-const store = makeInMemoryStore({ logger: P().child({ level: 'debug', stream: 'store' }) })
+const store = makeInMemoryStore({ logger: logger })
 store.readFromFile('./baileys_store_multi.json')
 // save every 10s
 setInterval(() => {
@@ -14,7 +17,13 @@ setInterval(() => {
 }, 10_000)
 
 var authBuffer = new Buffer('', 'utf-8')
-const { state, saveState } = useAuthState(authBuffer)
+var ev = new EventEmitter()
+
+const { state, saveState } = useAuthState(authBuffer, ev)
+
+ev.on('save-state', (r) => {
+	console.log('save-state', r)
+})
 
 // start a connection
 const startSock = async() => {
@@ -24,7 +33,7 @@ const startSock = async() => {
 	const agent = new SocksProxyAgent('socks://localhost:10808')
 	const sock = makeWASocket({
 		version,
-		logger: P({ level: 'trace' }),
+		logger: logger,
 		printQRInTerminal: true,
 		agent: agent,
 		fetchAgent:agent,
