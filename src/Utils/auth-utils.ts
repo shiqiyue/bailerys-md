@@ -1,5 +1,6 @@
 import { Boom } from '@hapi/boom'
 import { randomBytes } from 'crypto'
+import EventEmitter from 'events'
 import type { Logger } from 'pino'
 import { proto } from '../../WAProto'
 import type { AuthenticationCreds, AuthenticationState, SignalDataSet, SignalDataTypeMap, SignalKeyStore, SignalKeyStoreWithTransaction } from '../Types'
@@ -177,7 +178,7 @@ export const useSingleFileAuthState = (filename: string, logger?: Logger): { sta
 	}
 }
 
-export const useAuthState = (authBuffer: Buffer, logger?: Logger): { state: AuthenticationState, saveState: () => void } => {
+export const useAuthState = (authBuffer: Buffer, ev: EventEmitter, logger?: Logger): { state: AuthenticationState, saveState: () => void } => {
 	// require fs here so that in case "fs" is not available -- the app does not crash
 	let creds: AuthenticationCreds
 	let keys: any = { }
@@ -185,8 +186,9 @@ export const useAuthState = (authBuffer: Buffer, logger?: Logger): { state: Auth
 	// save the authentication state to a file
 	const saveState = () => {
 		logger && logger.trace('saving auth state')
-		authBuffer.write(JSON.stringify({ creds, keys }, BufferJSON.replacer, 2))
-
+		const authStr = JSON.stringify({ creds, keys }, BufferJSON.replacer, 2)
+		authBuffer.write(authStr)
+		ev.emit('save-state', authStr)
 	}
 
 	const authBufferStr = authBuffer.toString('utf-8')
