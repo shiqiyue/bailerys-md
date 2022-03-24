@@ -186,7 +186,7 @@ export const useAuthState = (authBuffer: Buffer, ev: EventEmitter, logger?: Logg
 	// save the authentication state to a file
 	const saveState = () => {
 		logger && logger.trace('saving auth state')
-		const authStr = JSON.stringify({ creds, keys }, BufferJSON.replacer, 2)
+		const authStr = stringifyAuth({ creds, keys })
 		authBuffer.write(authStr)
 		ev.emit('save-state', authStr)
 	}
@@ -239,4 +239,8 @@ export const useAuthState = (authBuffer: Buffer, ev: EventEmitter, logger?: Logg
 		},
 		saveState
 	}
+}
+
+export function stringifyAuth(auth) {
+	return JSON.stringify(auth, BufferJSON.replacer, 2)
 }
