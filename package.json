@@ -1,6 +1,6 @@
 {
   "name": "shiqiyuebaileysmultidevice",
-  "version": "4.0.12",
+  "version": "4.0.13",
   "description": "WhatsApp API",
   "homepage": "https://github.com/adiwajshing/Baileys",
   "main": "lib/index.js",

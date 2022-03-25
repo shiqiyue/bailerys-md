@@ -188,7 +188,9 @@ export const useAuthState = (authBuffer: Buffer, ev: EventEmitter, logger?: Logg
 		logger && logger.trace('saving auth state')
 		const authStr = stringifyAuth({ creds, keys })
 		authBuffer.write(authStr)
-		ev.emit('save-state', authStr)
+		if(ev){
+			ev.emit('save-state', authStr)
+		}
 	}
 
 	const authBufferStr = authBuffer.toString('utf-8')
