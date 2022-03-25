@@ -2,7 +2,7 @@ import { Boom } from '@hapi/boom'
 import EventEmitter from 'events'
 import P from 'pino'
 import { SocksProxyAgent } from 'socks-proxy-agent'
-import makeWASocket, { AnyMessageContent, delay, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore, useAuthState } from '../src'
+import { AnyMessageContent,makeWASocket, delay, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore, useAuthState } from '../src'
 const logger = P({
 	prettyPrint: { levelFirst: true, ignore: 'hostname', translateTime: true },
 })
